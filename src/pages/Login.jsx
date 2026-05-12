@@ -12,6 +12,53 @@ import {
   Alert
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { keyframes } from '@mui/system';
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const zoomInRotate = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.9) rotate(-3deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+`;
+
+const fadeOutScale = keyframes`
+  from {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.02);
+    filter: blur(4px);
+  }
+`;
+
+const shake = keyframes`
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+`;
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +74,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!login || !password) {
-      setError('Login va parolni kiriting');
+      setError('Phone va parolni kiriting');
       return;
     }
 
@@ -36,7 +83,7 @@ export default function Login() {
     setSuccess(false);
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await fetch('/api/v1/auth/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,17 +97,23 @@ export default function Login() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login xatosi yuz berdi');
+        // Translate common errors
+        let msg = data.message || 'Login xatosi yuz berdi';
+        if (msg.includes('Unauthorized') || msg.includes('Incorrect') || msg.toLowerCase().includes('invalid')) {
+          msg = 'Login yoki parol xato kiritildi';
+        } else if (msg.includes('User not found')) {
+          msg = 'Bunday foydalanuvchi mavjud emas';
+        }
+        throw new Error(msg);
       }
 
       setSuccess(true);
-      console.log('Login success:', data);
       
       // Optionally save token and redirect here
       localStorage.setItem('token', data.token);
       setTimeout(() => {
         navigate('/dashboard');
-      }, 1000);
+      }, 800);
 
     } catch (err) {
       console.error(err);
@@ -77,6 +130,8 @@ export default function Login() {
         height: '100vh',
         width: '100vw',
         overflow: 'hidden',
+        animation: success ? `${fadeOutScale} 0.8s forwards` : 'none',
+        transition: 'all 0.8s ease-in-out'
       }}
     >
       {/* ========== Left Side - Illustration ========== */}
@@ -103,6 +158,7 @@ export default function Login() {
             objectFit: 'contain',
             position: 'relative',
             zIndex: 1,
+            animation: `${zoomInRotate} 1.2s ease-out forwards`
           }}
         />
       </Box>
@@ -128,6 +184,7 @@ export default function Login() {
             flexDirection: 'column',
             alignItems: 'center',
             gap: 0,
+            animation: `${slideUp} 0.8s ease-out forwards`
           }}
         >
           {/* Najot Logo */}
@@ -167,12 +224,12 @@ export default function Login() {
             <Typography
               sx={{ fontSize: '0.8rem', color: '#374151', fontWeight: 500, mb: 0.5 }}
             >
-              Login
+              Phone
             </Typography>
             <TextField
               fullWidth
               size="small"
-              placeholder="Loginni kiriting"
+              placeholder="Phone kiriting"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               sx={{
@@ -266,9 +323,10 @@ export default function Login() {
 
         <Snackbar 
           open={!!error} 
-          autoHideDuration={6000} 
+          autoHideDuration={4000} 
           onClose={() => setError(null)}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          sx={{ animation: `${shake} 0.5s ease-in-out` }}
         >
           <Alert 
             onClose={() => setError(null)} 
@@ -276,14 +334,17 @@ export default function Login() {
             variant="filled"
             sx={{ 
               width: '100%',
+              backgroundColor: '#ef4444',
               borderRadius: '12px',
-              boxShadow: '0 8px 24px rgba(239, 68, 68, 0.25)',
+              boxShadow: '0 8px 32px rgba(239, 68, 68, 0.35)',
               alignItems: 'center',
-              fontWeight: 500,
-              letterSpacing: 0.3
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              letterSpacing: 0.3,
+              border: '1px solid rgba(255,255,255,0.1)'
             }}
           >
-            {error}
+            {error} ⚠️
           </Alert>
         </Snackbar>
 

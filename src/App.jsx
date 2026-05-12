@@ -1,23 +1,44 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
-import Rooms from './pages/Rooms';
+import Management from './pages/Management';
+import Teachers from './pages/Teachers';
+import Groups from './pages/Groups';
+import GroupInner from './pages/GroupInner';
+import Attendance from './pages/Attendance';
+import Students from './pages/Students';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
 
         {/* Protected Dashboard Routes */}
         <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="management/rooms" element={<Rooms />} />
-          {/* Add more inner routes here later */}
+          <Route path="management" element={<Management />} />
+          <Route path="management/courses" element={<Management />} />
+          <Route path="management/rooms" element={<Management />} />
+          <Route path="management/branches" element={<Management />} />
+          <Route path="management/staff" element={<Management />} />
+          <Route path="management/reasons" element={<Management />} />
+          <Route path="management/roles" element={<Management />} />
+          <Route path="management/coin" element={<Management />} />
+          <Route path="management/messages" element={<Management />} />
+          <Route path="management/check" element={<Management />} />
+          <Route path="teachers" element={<Teachers />} />
+          <Route path="groups" element={<Groups />} />
+          <Route path="group/:id" element={<GroupInner />} />
+          <Route path="group/:id/attendance/:date" element={<Attendance />} />
+          <Route path="students" element={<Students />} />
         </Route>
+
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

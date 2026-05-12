@@ -1,222 +1,197 @@
-import { useState } from 'react';
-import { 
-  Box, Typography, Button, IconButton, Tabs, Tab, Grid, Paper, Chip, 
-  Drawer, TextField, Stack, Divider 
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  Box, Typography, Button, IconButton, Paper,
+  Drawer, TextField, Stack
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import SyncIcon from '@mui/icons-material/Sync';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import CloseIcon from '@mui/icons-material/Close';
 
-const roomsData = [
-  { name: 'genious room', capacity: 15 },
-  { name: 'Impact room', capacity: 12 },
-  { name: '1A', capacity: 25 },
-  { name: '205-xona', capacity: 32 },
-  { name: '16-xona', capacity: 18 },
-  { name: '5 xona', capacity: 30 },
-  { name: 'IELTS with Islombek', capacity: 20 },
-  { name: 'Beginner', capacity: 18 },
-  { name: '99', capacity: 25 },
-];
-
 export default function Rooms() {
-  const [tabIndex, setTabIndex] = useState(1); // 1 = Xonalar
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [form, setForm] = useState({ name: '', capacity: '' });
+  const [rooms, setRooms] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+
+  async function getRooms() {
+    const token = localStorage.getItem("token");
+    const res = await axios.get("http://localhost:3000/api/v1/rooms?status=active",
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    setRooms(res.data)
+  }
+
+  useEffect(() => {
+    getRooms()
+  }, [])
+
+  function openCreateDrawer() {
+    setEditingId(null);
+    setForm({ name: '', capacity: '' });
+    setIsDrawerOpen(true);
+  }
+
+  function openEditDrawer(room) {
+    setEditingId(room.id);
+    setForm({ name: room.name, capacity: room.capacity });
+    setIsDrawerOpen(true);
+  }
+
+  async function handleSubmit() {
+    if (editingId) {
+      await updateRoom(editingId);
+    } else {
+      await createRoom();
+    }
+  }
+
+  async function createRoom() {
+    const token = localStorage.getItem("token");
+    await axios.post("http://localhost:3000/api/v1/rooms", {
+      name: form.name,
+      capacity: Number(form.capacity)
+    },
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    setIsDrawerOpen(false)
+    setForm({ name: '', capacity: '' })
+    getRooms()
+  }
+
+  async function deleteRoom(id) {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:3000/api/v1/rooms/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      getRooms()
+    } catch (error) {
+      console.error("Xonani o'chirishda xatolik:", error);
+      alert("Xonani o'chirishda xatolik yuz berdi");
+    }
+  }
+
+  async function updateRoom(id) {
+    const token = localStorage.getItem("token");
+    await axios.put(`http://localhost:3000/api/v1/rooms/${id}`, {
+      name: form.name,
+      capacity: Number(form.capacity)
+    },
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    setIsDrawerOpen(false)
+    setForm({ name: '', capacity: '' })
+    setEditingId(null);
+    getRooms()
+  }
+
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ fontWeight: 600, color: '#111827', mb: 2 }}>
-        Boshqarish
-      </Typography>
-      
-      {/* Top Tabs */}
-      <Tabs 
-        value={tabIndex} 
-        onChange={(e, v) => setTabIndex(v)} 
-        sx={{ 
-          minHeight: 36,
-          mb: 3,
-          borderBottom: '1px solid #e5e7eb',
-          '& .MuiTabs-indicator': { backgroundColor: '#7b61ff', height: 2 },
-          '& .MuiTab-root': { 
-            textTransform: 'none', 
-            minWidth: 'auto', 
-            minHeight: 36, 
-            fontWeight: 500, 
-            fontSize: '0.85rem', 
-            color: '#6b7280',
-            mr: 2,
-            px: 0.5
-          },
-          '& .Mui-selected': { color: '#7b61ff !important' }
-        }}
-      >
-        <Tab label="Kurslar" />
-        <Tab label="Xonalar" />
-        <Tab label="Filiallar" />
-        <Tab label="Xodimlar" />
-        <Tab label="Sabablar" />
-        <Tab label="Rollar" />
-        <Tab label="Coin" />
-        <Tab label="Xabar yuborish" />
-        <Tab label="Tekshiruv" />
-      </Tabs>
-
-      {/* Main Content Area */}
-      <Paper elevation={0} sx={{ border: '1px solid #e5e7eb', borderRadius: '12px', p: 3, pb: 6, backgroundColor: '#ffffff' }}>
+      <Paper elevation={0} sx={{ p: 4, borderRadius: '24px', border: '1px solid #e5e7eb', backgroundColor: '#fff' }}>
+        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#111827' }}>
-              Xonalar
-            </Typography>
-            <IconButton size="small">
-              <SyncIcon sx={{ fontSize: 18, color: '#9ca3af' }} />
-            </IconButton>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Xonalar</Typography>
+            <IconButton size="small" onClick={getRooms}><RefreshIcon sx={{ fontSize: 18, color: '#6b7280' }} /></IconButton>
           </Box>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setIsDrawerOpen(true)}
-            sx={{
-              backgroundColor: '#7b61ff',
-              textTransform: 'none',
-              borderRadius: '8px',
-              px: 2.5,
-              py: 1,
-              boxShadow: '0 4px 12px rgba(123, 97, 255, 0.2)',
-              '&:hover': { backgroundColor: '#6a50e8', boxShadow: '0 6px 16px rgba(123, 97, 255, 0.3)' }
-            }}
+            onClick={openCreateDrawer}
+            sx={{ backgroundColor: '#7b61ff', borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 3, py: 1, '&:hover': { backgroundColor: '#6a50e8' } }}
           >
             Xonani qo'shish
           </Button>
         </Box>
 
-        {/* Rooms Grid - Forced 4 columns */}
-        <Box 
-          sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, 1fr)',
-              md: 'repeat(4, 1fr)'
-            }, 
-            gap: 2 
-          }}
-        >
-          {roomsData.map((room) => (
-            <Box
-              key={room.name}
-              sx={{
-                border: '1px solid #f3f4f6',
-                borderRadius: '12px',
-                p: 2,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: '#ffffff',
-                transition: 'all 0.2s ease',
-                '&:hover': { 
-                  borderColor: '#7b61ff',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-                }
-              }}
-            >
-                <Box>
-                  <Typography sx={{ fontWeight: 600, color: '#111827', fontSize: '0.9rem', mb: 0.3 }}>
-                    {room.name}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                    Sig'imi: {room.capacity}
-                  </Typography>
+        {/* Xona kartalar — har doim 4 ta qatorda */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px'
+        }}>
+          {rooms.map(room => (
+            <Box key={room.id}>
+              <Paper elevation={0} sx={{
+                p: 3,
+                border: '2px solid #f3f4f6',
+                borderRadius: '20px',
+                backgroundColor: '#fff',
+                '&:hover': { borderColor: '#e0d9ff', boxShadow: '0 8px 20px rgba(0,0,0,0.05)' },
+                transition: 'all 0.3s'
+              }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#111827', mb: 0.5 }}>
+                      {room.name}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                      Sig'imi: {room.capacity}
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={0.5}>
+                    <IconButton size="small" onClick={() => deleteRoom(room.id)} sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
+                      <DeleteIcon  sx={{ fontSize: 18 }} />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => openEditDrawer(room)} sx={{ color: '#9ca3af', '&:hover': { color: '#7b61ff' } }}>
+                      <EditIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Stack>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  <IconButton size="small" sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
-                    <DeleteIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                  <IconButton size="small" sx={{ color: '#9ca3af', '&:hover': { color: '#7b61ff' } }}>
-                    <EditIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Box>
+              </Paper>
             </Box>
           ))}
         </Box>
       </Paper>
 
-      {/* Add Room Drawer */}
-      <Drawer
-        anchor="right"
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        PaperProps={{
-          sx: { width: { xs: '100%', sm: 500 } }
+      {/* Xona qo'shish/tahrirlash Drawer */}
+      <Drawer anchor="right" open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}
+        sx={{ zIndex: 2000 }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(2px)',
+            }
+          }
         }}
-      >
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {/* Drawer Header */}
-          <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Xonani qo'shish
-            </Typography>
-            <IconButton onClick={() => setIsDrawerOpen(false)} size="small">
-              <CloseIcon />
-            </IconButton>
+        PaperProps={{ sx: { width: 450, borderRadius: '24px 0 0 24px' } }}>
+        <Box sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>{editingId ? 'Xonani tahrirlash' : 'Xona qo\'shish'}</Typography>
+            <IconButton onClick={() => setIsDrawerOpen(false)}><CloseIcon /></IconButton>
           </Box>
-          <Divider />
-
-          {/* Drawer Content */}
-          <Box sx={{ width:"350px", p: 3, flexGrow: 1 }}>
-            <Stack spacing={3}>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#374151' }}>
-                  Nomi *
-                </Typography>
-                <TextField
-                  fullWidth
-                  placeholder="Xona nomi"
-                  size="small"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
-                />
-              </Box>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#374151' }}>
-                  Sig'imi *
-                </Typography>
-                <TextField
-                  fullWidth
-                  placeholder="Masalan: 20"
-                  size="small"
-                  type="number"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
-                />
-              </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+            {editingId ? 'Mavjud xona ma\'lumotlarini o\'zgartiring.' : 'Bu yerda siz yangi xona qo\'shishingiz mumkin.'}
+          </Typography>
+          <Stack spacing={3}>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Xona nomi</Typography>
+              <TextField fullWidth placeholder="Masalan: 205-xona"
+                value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Sig'imi</Typography>
+              <TextField fullWidth type="number" placeholder="Masalan: 30"
+                value={form.capacity} onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
+            </Box>
+            <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+              <Button fullWidth variant="outlined" onClick={() => setIsDrawerOpen(false)}
+                sx={{ py: 1.5, borderRadius: '14px', fontWeight: 700, textTransform: 'none', borderColor: '#e5e7eb', color: '#374151' }}>
+                Bekor qilish
+              </Button>
+              <Button fullWidth variant="contained" onClick={handleSubmit}
+                sx={{ backgroundColor: '#7b61ff', py: 1.5, borderRadius: '14px', fontWeight: 700, textTransform: 'none', '&:hover': { backgroundColor: '#6a50e8' } }}>
+                Saqlash
+              </Button>
             </Stack>
-          </Box>
-
-          {/* Drawer Footer */}
-          <Divider />
-          <Box sx={{ p: 2.5, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button 
-              variant="text" 
-              onClick={() => setIsDrawerOpen(false)}
-              sx={{ textTransform: 'none', color: '#6b7280', fontWeight: 500 }}
-            >
-              Bekor qilish
-            </Button>
-            <Button 
-              variant="contained" 
-              sx={{ 
-                backgroundColor: '#7b61ff', 
-                textTransform: 'none', 
-                borderRadius: '8px',
-                px: 3,
-                '&:hover': { backgroundColor: '#6a50e8' }
-              }}
-            >
-              Saqlash
-            </Button>
-          </Box>
+          </Stack>
         </Box>
       </Drawer>
     </Box>
